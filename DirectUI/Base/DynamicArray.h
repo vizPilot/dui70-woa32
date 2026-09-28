@@ -1,40 +1,7 @@
 #pragma once
 
-#ifdef _DEBUG
-#define DUI_ASSERT(msg) \
-	do \
-	{ \
-		DirectUI::TryDbgPrintEx(101 /*DPFLTR_DEFAULT_ID*/, 0, msg); \
-		_ASSERTE(false); \
-	} \
-	while (0)
-
-#define DUI_ASSERT_EXPR(expr, msg) \
-	if (!(expr)) \
-	{ \
-	   DUI_ASSERT("(" #expr ")\r\n" msg "\r\n"); \
-	}
-#else
-#define DUI_ASSERT(msg)
-#define DUI_ASSERT_EXPR(expr, msg)
-#endif
-
 namespace DirectUI
 {
-	inline void TryDbgPrintEx(ULONG ComponentId, ULONG Level, PCSTR Format)
-	{
-		HMODULE hModule = GetModuleHandleW(L"ntdll.dll");
-		if (hModule)
-		{
-			typedef ULONG (WINAPI *DbgPrintEx_t)(ULONG ComponentId, ULONG Level, PCSTR Format, ...);
-			DbgPrintEx_t pfnDbgPrintEx = (DbgPrintEx_t)GetProcAddress(hModule, "DbgPrintEx");
-			if (pfnDbgPrintEx)
-			{
-				pfnDbgPrintEx(ComponentId, Level, Format);
-			}
-		}
-	}
-
 	// exported for int
 	template <typename T>
 	class SafeArrayAccessor
@@ -405,6 +372,11 @@ namespace DirectUI
 
 		void Remove(UINT uIndex, UINT cItems)
 		{
+			DUI_ASSERT_EXPR(!_fImmutable, "Only read operations allowed on immutable DynamicArray");
+			DUI_ASSERT_EXPR(uIndex < _uSize, "DynamicArray index out of bounds");
+			DUI_ASSERT_EXPR((uIndex + cItems) <= _uSize, "DynamicArray index out of bounds");
+			DUI_ASSERT_EXPR(cItems <= _uSize, "DynamicArray index out of bounds");
+
 			if (_uSize - uIndex != cItems)
 			{
 				T* pBuffer = Buffer();

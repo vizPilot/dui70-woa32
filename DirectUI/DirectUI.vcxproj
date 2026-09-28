@@ -219,6 +219,7 @@
     <ClInclude Include="Base.h" />
     <ClInclude Include="Base\Alloc.h" />
     <ClInclude Include="Base\DynamicArray.h" />
+    <ClInclude Include="Base\Error.h" />
     <ClInclude Include="Base\FontCache.h" />
     <ClInclude Include="Base\LinkedList.h" />
     <ClInclude Include="Base\SBAlloc.h" />
@@ -338,6 +339,7 @@
     <ClInclude Include="PVLTrigger.h" />
     <ClInclude Include="RadioButtonGlyph.h" />
     <ClInclude Include="Repeater.h" />
+    <ClInclude Include="SafeElementPtr.h" />
     <ClInclude Include="SelectorNoDefault.h" />
     <ClInclude Include="SelectorSelection.h" />
     <ClInclude Include="SelectorSelectionItem.h" />

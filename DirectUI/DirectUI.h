@@ -34,11 +34,14 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 #include "Types.h"
 #include "Extensions\Misc.h"
+
 #include "Base\Alloc.h"
+#include "Base\Error.h"
 #include "Base\DynamicArray.h"
 #include "Base\Surface.h"
 #include "Base\SBAlloc.h"
 #include "Core\Event.h"
+
 #include "Interfaces.h"
 
 // Layout
@@ -207,22 +210,6 @@ extern "C" UILIB_API HRESULT WINAPI DuiCreateObject(REFCLSID rclsid, REFIID riid
 #include "Core\BehaviorEngineHelper.h"
 #include "StockBehaviors\ContextMenuBehavior.h"
 
-// DirectUI Error codes
-#define FACILITY_DIRECTUI			FACILITY_ITF
-#define MAKE_DUIERROR(code)			MAKE_HRESULT(SEVERITY_ERROR, FACILITY_DIRECTUI, code)
-
-#define DUI_E_USERFAILURE			MAKE_DUIERROR(1002)		// 0x800403EA
-#define DUI_E_NODEFERTABLE			MAKE_DUIERROR(1003)		// 0x800403EB
-#define DUI_E_PARTIAL				MAKE_DUIERROR(1004)		// 0x800403EC
-
-// New in Vista+ DirectUI
-#define DUI_E_BADMARKUP				MAKE_DUIERROR(1005)		// 0x800403ED
-#define DUI_E_UNREGISTEREDELEMENT	MAKE_DUIERROR(1006)		// 0x800403EE
-#define DUI_E_MISSINGPROPERTY		MAKE_DUIERROR(1007)		// 0x800403EF
-#define DUI_E_NOTFOUND				MAKE_DUIERROR(1008)		// 0x800403F0
-#define DUI_E_INVALIDPROPVALUE		MAKE_DUIERROR(1009)		// 0x800403F1
-#define DUI_E_INVALIDPROPERTY		MAKE_DUIERROR(1010)		// 0x800403F2
-
 namespace DirectUI
 {
 	extern UILIB_API DWORD g_dwElSlot;
@@ -233,7 +220,7 @@ namespace DirectUI
 		HRESULT WINAPI InitProcessPriv(DWORD dwExpectedVersion, HMODULE hModule, bool fRegisterControls, bool fEnableUIAutomationProvider, bool fInitCommctl);
 		HRESULT WINAPI UnInitProcessPriv(HMODULE hModule);
 		HRESULT WINAPI InitThread(UINT nThreadMode);
-		void WINAPI UnInitThread();
+		HRESULT WINAPI UnInitThread();
 
 		HRESULT WINAPI CreateDUIWrapper(Element* pe, IUnknown** ppunk);
 		HRESULT WINAPI CreateDUIWrapperEx(Element* pe, IXProviderCP* pprovCP, IUnknown** ppunk);

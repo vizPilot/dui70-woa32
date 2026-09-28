@@ -1,52 +1,42 @@
 ﻿#pragma once
 
-#define DUI_GET_CLASS_INFO(className, ppClassInfo) \
-	__if_exists(className::Class) \
-	{ \
-		*(ppClassInfo) = className::Class; \
-	} \
-	__if_not_exists(className::Class) \
-	{ \
-		*(ppClassInfo) = className::GetClassInfoPtr(); \
-	}
+namespace DirectUI
+{
 
-#define DUI_SET_CLASS_INFO(className, pClassInfo) \
-    __if_exists(className::Class) \
-    { \
-        className::Class = pClassInfo; \
-    } \
-    __if_not_exists(className::Class) \
-    { \
-        className::SetClassInfoPtr(pClassInfo); \
-    }
+template <typename T>
+IClassInfo* WINAPI GetElementClass()
+{
+	__if_exists(T::Class)
+	{
+		return T::Class;
+	}
+	__if_not_exists(T::Class)
+	{
+		return T::GetClassInfoPtr();
+	}
+}
+
+template <typename T>
+void WINAPI SetElementClass(IClassInfo* pClass)
+{
+	__if_exists(T::Class)
+	{
+		T::Class = pClass;
+	}
+	__if_not_exists(T::Class)
+	{
+		T::SetClassInfoPtr(pClass);
+	}
+}
+
+}
 
 #define DEFINE_CLASSINFO() \
-    static ::DirectUI::IClassInfo *GetClassInfoPtr(); \
-    static void SetClassInfoPtr(::DirectUI::IClassInfo *pClass); \
-\
-private: \
-    static ::DirectUI::IClassInfo *s_pClassInfo; \
-\
-public: \
-    ::DirectUI::IClassInfo *GetClassInfo();
+    static ::DirectUI::IClassInfo *Class; \
+    virtual ::DirectUI::IClassInfo *GetClassInfoW() { return Class; }
 
 #define IMPLEMENT_CLASSINFO(c) \
-    ::DirectUI::IClassInfo *c::s_pClassInfo; \
-    \
-    ::DirectUI::IClassInfo *c::GetClassInfoPtr() \
-    { \
-        return s_pClassInfo; \
-    } \
-    \
-    void c::SetClassInfoPtr(::DirectUI::IClassInfo *pClass) \
-    { \
-        s_pClassInfo = pClass; \
-    } \
-    \
-    ::DirectUI::IClassInfo *c::GetClassInfo() \
-    { \
-        return s_pClassInfo; \
-    }
+    ::DirectUI::IClassInfo *c::Class
 
 namespace DirectUI
 {
@@ -110,12 +100,13 @@ namespace DirectUI
 		}
 	};
 
-	template <typename ControlType, typename SuperType, typename CreatorType = StandardCreator<ControlType>>
+	template <typename TClass, typename TBaseClass, typename TCreator = StandardCreator<TClass>>
 	class ClassInfo : public ClassInfoBase
 	{
 		static HRESULT Create(HMODULE hModule, const WCHAR* pszName, bool fGlobal, const PropertyInfo* const* ppPI, UINT cPI, ClassInfo** ppCI)
 		{
 			*ppCI = nullptr;
+
 			ClassInfo* pCI = DirectUI::HNew<ClassInfo>();
 			HRESULT hr = pCI ? S_OK : E_OUTOFMEMORY;
 			if (SUCCEEDED(hr))
@@ -137,33 +128,30 @@ namespace DirectUI
 		{
 			HRESULT hr = S_OK;
 
-			IClassInfo* pClassSuper = nullptr;
-			DUI_GET_CLASS_INFO(SuperType, &pClassSuper);
-			if (pClassSuper)
+			if (GetElementClass<TBaseClass>())
 			{
-				DUI_GET_CLASS_INFO(SuperType, &pClassSuper);
-				pClassSuper->AddRef();
+				GetElementClass<TBaseClass>()->AddRef();
 			}
 			else
 			{
-				hr = SuperType::Register();
+				hr = TBaseClass::Register();
 			}
 
 			if (SUCCEEDED(hr))
 			{
 				CritSecLock lock(Element::GetFactoryLock());
 
-				IClassInfo* pClassExisting;
-				DUI_GET_CLASS_INFO(SuperType, &pClassSuper);
-				if (ClassExist(&pClassExisting, ppPI, cPI, pClassSuper, hModule, pszName, fGlobal))
+				IClassInfo* pCI;
+				if (ClassExist(&pCI, ppPI, cPI, GetElementClass<TBaseClass>(), hModule, pszName, fGlobal))
 				{
-					DUI_SET_CLASS_INFO(ControlType, pClassExisting);
+					SetElementClass<TClass>(pCI);
 					hr = S_OK;
 				}
 				else
 				{
-					DUI_SET_CLASS_INFO(ControlType, nullptr);
+					SetElementClass<TClass>(nullptr);
 
+					// ReSharper disable once CppDeclarationHidesLocal
 					ClassInfo* pCI;
 					hr = Create(hModule, pszName, fGlobal, ppPI, cPI, &pCI);
 					if (SUCCEEDED(hr))
@@ -171,7 +159,7 @@ namespace DirectUI
 						hr = pCI->ClassInfoBase::Register();
 						if (SUCCEEDED(hr))
 						{
-							DUI_SET_CLASS_INFO(ControlType, pCI);
+							SetElementClass<TClass>(pCI);
 						}
 						else
 						{
@@ -192,25 +180,23 @@ namespace DirectUI
 
 		static HRESULT RegisterGlobal(HMODULE hModule, const WCHAR* pszName, const PropertyInfo* const* ppPI, UINT cPI)
 		{
-			return Register(hModule, pszName, ppPI, cPI, false);
+			return Register(hModule, pszName, ppPI, cPI, true);
 		}
 
 		HRESULT CreateInstance(Element* pParent, DWORD* pdwDeferCookie, Element** ppElement) override
 		{
-			return CreatorType::CreateInstance(pParent, pdwDeferCookie, ppElement);
+			return TCreator::CreateInstance(pParent, pdwDeferCookie, ppElement);
 		}
 
 		IClassInfo* GetBaseClass() override
 		{
-			IClassInfo* pClassSuper = nullptr;
-			DUI_GET_CLASS_INFO(SuperType, &pClassSuper);
-			return pClassSuper;
+			return GetElementClass<TBaseClass>();
 		}
 
 		void Destroy() override
 		{
 			HDelete(this);
-			DUI_SET_CLASS_INFO(ControlType, nullptr);
+			SetElementClass<TClass>(nullptr);
 		}
 	};
 
@@ -302,7 +288,7 @@ namespace DirectUI
 template <typename T>
 BOOL IsSubclassOf(DirectUI::Element* pe)
 {
-	return pe->GetClassInfoW()->IsSubclassOf(((T*)pe)->T::GetClassInfoW()); // @Note: bool -> BOOL, no != 0
+	return pe->GetClassInfoW()->IsSubclassOf(DirectUI::GetElementClass<T>()); // @Note: bool -> BOOL, no != 0
 }
 
 template <typename T>
@@ -333,8 +319,5 @@ T* element_interface_cast(DirectUI::Element* pe)
 template <typename T>
 BOOL IsClassOf(DirectUI::Element* pe)
 {
-	return pe->GetClassInfoW() == ((T*)pe)->T::GetClassInfoW();
+	return pe->GetClassInfoW() == DirectUI::GetElementClass<T>();
 }
-
-#undef DUI_GET_CLASS_INFO
-#undef DUI_SET_CLASS_INFO

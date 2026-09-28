@@ -31,7 +31,7 @@ namespace DirectUI
 	{
 		UINT64 uiID;
 		RECT rcArea;
-		DynamicArray<CSafeElementPtr<Element>*>* pspelElements;
+		CSafeElementPtrList* pspelElements;
 	};
 
 	class TouchScrollViewer : public BaseScrollViewer
@@ -230,18 +230,9 @@ namespace DirectUI
 		HRESULT CreateScrollBars() override;
 		HRESULT AddChildren() override;
 
-		TouchScrollBar* GetHScroll() override;
+		TouchScrollBar* GetHScroll() override { return _peHScroll; }
+		TouchScrollBar* GetVScroll() override { return _peVScroll; }
 
-	public:
-		using BaseScrollViewer::GetHScroll; // @NOTE: Might be wrong
-
-	protected:
-		TouchScrollBar* GetVScroll() override;
-
-	public:
-		using BaseScrollViewer::GetVScroll; // @NOTE: Might be wrong
-
-	protected:
 		void _SetLastInputType(UINT nLastInputType);
 
 		UINT MessageCallback(GMSG* pMsg) override;
@@ -291,7 +282,7 @@ namespace DirectUI
 		UINT _uiTileIndex;
 		DynamicArray<TILE*>* _pdaTiles;
 		bool _fTileCollectionLayered;
-		DynamicArray<CSafeElementPtr<Element>*>* _pspelDeferredReleaseList;
+		CSafeElementPtrList* _pspelDeferredReleaseList;
 
 		void _FlipRect(RECT*, RECT*);
 		POINT _GetContentOrigin();
@@ -301,14 +292,14 @@ namespace DirectUI
 		bool _GadgetExistsInRect(Element*, RECT*);
 		bool _ElementExistsInRect(Element*, RECT*);
 		void _SetLayeredTiles(bool);
-		void _LayerList(DynamicArray<CSafeElementPtr<Element>*>*, bool, DynamicArray<CSafeElementPtr<Element>*>*);
+		void _LayerList(CSafeElementPtrList*, bool, CSafeElementPtrList*);
 		void _ClearTiles();
 		void _RecomputeTiles();
-		void _SetupDeferList(DynamicArray<CSafeElementPtr<Element>*>**);
-		void _FlushDeferList(DynamicArray<CSafeElementPtr<Element>*>**);
+		void _SetupDeferList(CSafeElementPtrList**);
+		void _FlushDeferList(CSafeElementPtrList**);
 		HRESULT _UpdateTiles();
-		HRESULT _UpdateTile(TILE*, DynamicArray<CSafeElementPtr<Element>*>*);
-		HRESULT _UpdateTileCollectElements_Recursive(Element*, RECT*, DynamicArray<CSafeElementPtr<Element>*>*, bool, int);
+		HRESULT _UpdateTile(TILE*, CSafeElementPtrList*);
+		HRESULT _UpdateTileCollectElements_Recursive(Element*, RECT*, CSafeElementPtrList*, bool, int);
 		void _UpdateSizes();
 		HRESULT _PrepareZoomToRect(float, const float, float, const float, float*, float*, float*, float*, float*, bool, float*, float*, float*, float*);
 		HRESULT _ExecuteZoomToRect(float, float, float, float, bool);
